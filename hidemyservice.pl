@@ -91,6 +91,37 @@ sub find_pkg
     $pkg
 }
 
+sub init_enable
+{
+    #let's try the most common init systems...
+    
+    #OpenRC
+    my $init = path_of("rc-update");
+    if ($init)
+    {
+        system("$init add knockd >/dev/null 2>&1");
+        return 1
+    }
+    
+    #Systemd
+    $init = path_of("systemctl");
+    if ($init)
+    {
+        system("$init enable knockd >/dev/null 2>&1");
+        return 1
+    }
+    
+    #SysV
+    $init = path_of("update-rc.d");
+    if ($init)
+    {
+        system("$init enable knockd >/dev/null 2>&1");
+        return 1
+    }
+    
+    0
+}
+
 my $knock       = path_of('knock');
 my $iptables    = path_of('iptables');
 my $persistent  = path_of('iptables-persistent') ||
@@ -313,6 +344,18 @@ sub main
     print "[+] (Re)starting knockd ";
     system("service knockd restart >/dev/null 2>&1");
     print "[OK]\n";
+
+    print "[+] Enabling knockd service ";
+    if (init_enable())
+    {
+        print "[OK]\n"
+    }
+    else
+    {
+        print "[ERROR]\n";
+        print "[!] Can't identify your init system...\n";
+        print "[!] You will need to enable knockd manually\n";
+    }
 
     0;
 }
